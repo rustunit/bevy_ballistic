@@ -1,7 +1,7 @@
 mod ballistic;
 
 use avian3d::prelude::*;
-use ballistic::launch_velocity;
+use ballistic::{launch_velocity, launch_velocity_lateral};
 use bevy::{
     color::palettes::basic::SILVER,
     prelude::*,
@@ -35,6 +35,9 @@ struct Controls {
     x: f32,
     z: f32,
     vel: f32,
+    lateral_vel: f32,
+    lateral_height: f32,
+    lateral: bool,
 }
 
 fn main() {
@@ -77,6 +80,9 @@ fn setup(
         x: 5.,
         z: 20.,
         vel: 40.,
+        lateral_vel: 12.,
+        lateral_height: 4.,
+        lateral: false,
     };
 
     commands.insert_resource(controls.clone());
@@ -139,6 +145,13 @@ fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
         ui.add(egui::Slider::new(&mut res.x, 2.0..=10.0).text("x"));
         ui.add(egui::Slider::new(&mut res.z, 15.0..=30.0).text("z"));
         ui.add(egui::Slider::new(&mut res.vel, 10.0..=25.0).text("vel"));
+
+        ui.checkbox(&mut res.lateral, "lateral");
+
+        if res.lateral {
+            ui.add(egui::Slider::new(&mut res.lateral_vel, 1.0..=15.0).text("lateral vel"));
+            ui.add(egui::Slider::new(&mut res.lateral_height, 1.0..=15.0).text("lateral height"));
+        }
     });
 }
 
@@ -172,26 +185,54 @@ fn update(
             return;
         };
 
-        let Some((vel_low, vel_high)) =
-            launch_velocity(shooter.translation, target.translation, controls.vel, 9.81)
-        else {
-            warn!("cannot reach target");
-            return;
-        };
+        if controls.lateral {
+            let Some((vel, gravity)) = launch_velocity_lateral(
+                shooter.translation,
+                controls.lateral_vel,
+                target.translation,
+                controls.lateral_height,
+            ) else {
+                warn!("cannot reach target");
+                return;
+            };
 
-        for vel in [vel_low, vel_high] {
+            info!("vel: {vel}, gravity: {gravity}");
+
             commands.spawn((
                 Name::new("projectile"),
                 Projectile,
                 Mesh3d(shooting.mesh.clone()),
                 MeshMaterial3d(shooting.material.clone()),
                 Collider::sphere(0.5),
+                GravityScale(gravity / 9.81),
                 RigidBody::Dynamic,
                 LinearVelocity(vel),
                 Visibility::default(),
                 Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
                 CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
             ));
+        } else {
+            let Some((vel_low, vel_high)) =
+                launch_velocity(shooter.translation, target.translation, controls.vel, 9.81)
+            else {
+                warn!("cannot reach target");
+                return;
+            };
+
+            for vel in [vel_low, vel_high] {
+                commands.spawn((
+                    Name::new("projectile"),
+                    Projectile,
+                    Mesh3d(shooting.mesh.clone()),
+                    MeshMaterial3d(shooting.material.clone()),
+                    Collider::sphere(0.5),
+                    RigidBody::Dynamic,
+                    LinearVelocity(vel),
+                    Visibility::default(),
+                    Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
+                    CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
+                ));
+            }
         }
     }
 }

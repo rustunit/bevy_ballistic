@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use std::f32;
 
 pub fn launch_velocity(
     start_pos: Vec3,
@@ -56,4 +57,33 @@ pub fn launch_velocity(
     );
 
     Some((result_low, result_high))
+}
+
+// see https://www.forrestthewoods.com/blog/solving_ballistic_trajectories/
+pub fn launch_velocity_lateral(
+    proj_pos: Vec3,
+    lateral_speed: f32,
+    target_pos: Vec3,
+    max_height: f32,
+) -> Option<(Vec3, f32)> {
+    let diff = target_pos - proj_pos;
+    let diff_xz = Vec3::new(diff.x, 0., diff.z);
+
+    let lateral_distance = diff_xz.length();
+    if lateral_distance <= 0.001 {
+        return None;
+    }
+
+    let time = lateral_distance / lateral_speed;
+
+    let mut fire_velocity = diff_xz.normalize() * lateral_speed;
+
+    let a = proj_pos.y; // initial
+    let b = max_height; // peak
+    let c = target_pos.y; // final
+
+    let gravity = -4. * (a - 2. * b + c) / (time * time);
+    fire_velocity.y = -(3. * a - 4. * b + c) / time;
+
+    Some((fire_velocity, gravity))
 }
