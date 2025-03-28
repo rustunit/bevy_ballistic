@@ -71,7 +71,7 @@ fn setup(
     });
 
     commands.insert_resource(Shooting {
-        timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
+        timer: Timer::new(Duration::from_millis(200), TimerMode::Repeating),
         material: debug_material.clone(),
         mesh: meshes.add(Sphere::default().mesh().ico(5).unwrap()),
     });
@@ -195,8 +195,6 @@ fn update(
                 warn!("cannot reach target");
                 return;
             };
-
-            info!("vel: {vel}, gravity: {gravity}");
 
             commands.spawn((
                 Name::new("projectile"),
