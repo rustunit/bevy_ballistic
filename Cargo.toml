@@ -1,0 +1,11 @@
+[package]
+name = "bevy_ballistic"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+avian3d = "0.2.1"
+bevy = "0.15"
+bevy-inspector-egui = "0.30.0"
+bevy_firework = "0.6.0"
+bevy_flycam = "0.15.0"
