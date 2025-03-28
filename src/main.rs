@@ -10,6 +10,7 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
 };
+use bevy_egui::{EguiContexts, EguiPlugin, egui};
 use bevy_flycam::prelude::*;
 use std::time::Duration;
 
@@ -19,11 +20,21 @@ struct Shooter;
 #[derive(Component)]
 struct Target;
 
+#[derive(Component)]
+struct Projectile;
+
 #[derive(Resource)]
 struct Shooting {
     timer: Timer,
     material: Handle<StandardMaterial>,
     mesh: Handle<Mesh>,
+}
+
+#[derive(Resource, Clone)]
+struct Controls {
+    x: f32,
+    z: f32,
+    vel: f32,
 }
 
 fn main() {
@@ -32,13 +43,15 @@ fn main() {
     app.add_plugins((DefaultPlugins.set(ImagePlugin::default_nearest()),))
         .add_plugins(NoCameraPlayerPlugin);
 
-    app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
+    app.add_plugins(PhysicsPlugins::default());
     app.add_plugins(PhysicsDebugPlugin::default());
 
-    app.add_systems(Startup, setup);
-    app.add_systems(Update, update);
+    if !app.is_plugin_added::<EguiPlugin>() {
+        app.add_plugins(EguiPlugin);
+    }
 
-    app.add_plugins(PhysicsPlugins::default());
+    app.add_systems(Startup, setup);
+    app.add_systems(Update, (update, collisions, ui, controls));
 
     app.run();
 }
@@ -60,18 +73,30 @@ fn setup(
         mesh: meshes.add(Sphere::default().mesh().ico(5).unwrap()),
     });
 
+    let controls = Controls {
+        x: 5.,
+        z: 20.,
+        vel: 40.,
+    };
+
+    commands.insert_resource(controls.clone());
+
     commands.spawn((
         Shooter,
         Mesh3d(meshes.add(Cuboid::default())),
         MeshMaterial3d(debug_material.clone()),
-        Transform::from_xyz(-5.0, 0.5, 20.0),
+        Transform::from_xyz(-5.0, 0.6, 20.0),
     ));
 
     commands.spawn((
+        Name::new("target"),
         Target,
         Mesh3d(meshes.add(Cuboid::default())),
         MeshMaterial3d(debug_material.clone()),
-        Transform::from_xyz(5.0, 0.5, 20.0),
+        Transform::from_xyz(controls.x, 0.6, controls.z),
+        RigidBody::Kinematic,
+        Collider::cuboid(1., 1., 1.),
+        CollisionLayers::new(LayerMask(0b001), LayerMask::ALL),
     ));
 
     commands.spawn((
@@ -87,8 +112,19 @@ fn setup(
 
     // ground plane
     commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
+        Name::new("ground"),
+        Mesh3d(
+            meshes.add(
+                Plane3d::default()
+                    .mesh()
+                    .size(150.0, 150.0)
+                    .subdivisions(10),
+            ),
+        ),
         MeshMaterial3d(materials.add(Color::from(SILVER))),
+        RigidBody::Static,
+        Collider::half_space(Vec3::Y),
+        CollisionLayers::new(LayerMask(0b010), LayerMask::ALL),
     ));
 
     commands.spawn((
@@ -98,9 +134,30 @@ fn setup(
     ));
 }
 
+fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
+    egui::Window::new("Controls").show(contexts.ctx_mut(), |ui| {
+        ui.add(egui::Slider::new(&mut res.x, 2.0..=10.0).text("x"));
+        ui.add(egui::Slider::new(&mut res.z, 15.0..=30.0).text("z"));
+        ui.add(egui::Slider::new(&mut res.vel, 10.0..=25.0).text("vel"));
+    });
+}
+
+fn controls(
+    res: Res<Controls>,
+    mut target: Query<&mut Transform, (With<Target>, Without<Shooter>)>,
+) {
+    let Ok(mut target) = target.get_single_mut() else {
+        return;
+    };
+
+    target.translation.z = res.z;
+    target.translation.x = res.x;
+}
+
 fn update(
     mut commands: Commands,
     mut shooting: ResMut<Shooting>,
+    controls: Res<Controls>,
     time: Res<Time>,
     shooter: Query<&Transform, (With<Shooter>, Without<Target>)>,
     target: Query<&Transform, (With<Target>, Without<Shooter>)>,
@@ -116,31 +173,41 @@ fn update(
         };
 
         let Some((vel_low, vel_high)) =
-            launch_velocity(shooter.translation, target.translation, 20., 9.81)
+            launch_velocity(shooter.translation, target.translation, controls.vel, 9.81)
         else {
             warn!("cannot reach target");
             return;
         };
 
-        commands.spawn((
-            Mesh3d(shooting.mesh.clone()),
-            MeshMaterial3d(shooting.material.clone()),
-            Collider::sphere(0.5),
-            RigidBody::Dynamic,
-            LinearVelocity(vel_low),
-            Visibility::default(),
-            Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
-        ));
+        for vel in [vel_low, vel_high] {
+            commands.spawn((
+                Name::new("projectile"),
+                Projectile,
+                Mesh3d(shooting.mesh.clone()),
+                MeshMaterial3d(shooting.material.clone()),
+                Collider::sphere(0.5),
+                RigidBody::Dynamic,
+                LinearVelocity(vel),
+                Visibility::default(),
+                Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
+                CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
+            ));
+        }
+    }
+}
 
-        commands.spawn((
-            Mesh3d(shooting.mesh.clone()),
-            MeshMaterial3d(shooting.material.clone()),
-            Collider::sphere(0.5),
-            RigidBody::Dynamic,
-            LinearVelocity(vel_high),
-            Visibility::default(),
-            Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
-        ));
+fn collisions(
+    mut commands: Commands,
+    mut collision_event_reader: EventReader<CollisionStarted>,
+    projectile: Query<&Projectile>,
+) {
+    for CollisionStarted(e1, e2) in collision_event_reader.read() {
+        if projectile.contains(*e1) {
+            commands.entity(*e1).despawn();
+        }
+        if projectile.contains(*e2) {
+            commands.entity(*e2).despawn();
+        }
     }
 }
 
