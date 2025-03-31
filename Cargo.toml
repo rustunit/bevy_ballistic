@@ -1,7 +1,14 @@
 [package]
 name = "bevy_ballistic"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
+readme = "README.md"
+license = "MIT"
+authors = ["extrawurst <mail@rusticorn.com>"]
+documentation = "https://docs.rs/bevy_ballistic"
+repository = "https://github.com/rustunit/bevy_ballistic"
+keywords = ["bevy", "gamedev", "math"]
+description = "Simple Bevy math functions to calculate projectile launch angles to hit a specific target."
 
 [dependencies]
 bevy_math = "0.15"
