@@ -1,7 +1,4 @@
-mod ballistic;
-
 use avian3d::prelude::*;
-use ballistic::{launch_velocity, launch_velocity_lateral};
 use bevy::{
     color::palettes::basic::SILVER,
     prelude::*,
@@ -10,6 +7,7 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
 };
+use bevy_ballistic::{launch_velocity, launch_velocity_lateral};
 use bevy_egui::{EguiContexts, EguiPlugin, egui};
 use bevy_flycam::prelude::*;
 use std::time::Duration;

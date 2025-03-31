@@ -574,6 +574,7 @@ dependencies = [
  "bevy_egui",
  "bevy_firework",
  "bevy_flycam",
+ "bevy_math",
 ]
 
 [[package]]
