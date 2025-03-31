@@ -7,7 +7,8 @@
 use bevy_math::Vec3;
 use std::f32::{EPSILON, consts::FRAC_PI_4};
 
-/// range of a projectile being fired from `initial_height` at `speed` and only affected by `gravity`
+/// Caluculate range of a projectile being fired from `initial_height`
+/// with `speed` and only affected by `gravity`.
 pub fn ballistic_range(speed: f32, gravity: f32, initial_height: f32) -> f32 {
     // Derivation
     //   (1) x = speed * time * cos O
@@ -57,31 +58,19 @@ pub fn launch_velocity(
     // Calculate yaw angle
     let yaw = delta.z.atan2(delta.x);
 
-    let pitch = pitch_low;
+    let pitch = move |pitch: f32| {
+        let dir_x = pitch.cos() * yaw.cos();
+        let dir_y = pitch.sin();
+        let dir_z = pitch.cos() * yaw.sin();
 
-    let dir_x = pitch.cos() * yaw.cos();
-    let dir_y = pitch.sin();
-    let dir_z = pitch.cos() * yaw.sin();
+        Vec3::new(
+            initial_velocity * dir_x,
+            initial_velocity * dir_y,
+            initial_velocity * dir_z,
+        )
+    };
 
-    let result_low = Vec3::new(
-        initial_velocity * dir_x,
-        initial_velocity * dir_y,
-        initial_velocity * dir_z,
-    );
-
-    let pitch = pitch_high;
-
-    let dir_x = pitch.cos() * yaw.cos();
-    let dir_y = pitch.sin();
-    let dir_z = pitch.cos() * yaw.sin();
-
-    let result_high = Vec3::new(
-        initial_velocity * dir_x,
-        initial_velocity * dir_y,
-        initial_velocity * dir_z,
-    );
-
-    Some((result_low, result_high))
+    Some((pitch(pitch_low), pitch(pitch_high)))
 }
 
 /// Solve for arc with a fixed lateral speed. Vertical speed and gravity varies.

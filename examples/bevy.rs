@@ -1,13 +1,13 @@
 use avian3d::prelude::*;
 use bevy::{
-    color::palettes::basic::SILVER,
+    color::palettes::{basic::SILVER, css::WHITE},
     prelude::*,
     render::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
 };
-use bevy_ballistic::{launch_velocity, launch_velocity_lateral};
+use bevy_ballistic::{ballistic_range, launch_velocity, launch_velocity_lateral};
 use bevy_egui::{EguiContexts, EguiPlugin, egui};
 use bevy_flycam::prelude::*;
 use std::time::Duration;
@@ -36,6 +36,7 @@ struct Controls {
     lateral_vel: f32,
     lateral_height: f32,
     lateral: bool,
+    show_range: bool,
 }
 
 fn main() {
@@ -52,7 +53,7 @@ fn main() {
     }
 
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (update, collisions, ui, controls));
+    app.add_systems(Update, (update, collisions, ui, controls, gismos));
 
     app.run();
 }
@@ -77,10 +78,11 @@ fn setup(
     let controls = Controls {
         x: 5.,
         z: 20.,
-        vel: 40.,
+        vel: 15.,
         lateral_vel: 12.,
         lateral_height: 4.,
         lateral: false,
+        show_range: false,
     };
 
     commands.insert_resource(controls.clone());
@@ -111,7 +113,7 @@ fn setup(
             shadow_depth_bias: 0.2,
             ..default()
         },
-        Transform::from_xyz(8.0, 16.0, 8.0),
+        Transform::from_xyz(8.0, 26.0, 8.0),
     ));
 
     // ground plane
@@ -138,11 +140,42 @@ fn setup(
     ));
 }
 
+fn gismos(
+    mut gizmos: Gizmos,
+    controls: Res<Controls>,
+    shooter: Query<&Transform, (With<Shooter>, Without<Target>)>,
+) {
+    if !controls.show_range {
+        return;
+    }
+    let Ok(shooter) = shooter.get_single() else {
+        return;
+    };
+
+    let range = ballistic_range(controls.vel, 9.81, 0.5);
+    gizmos.sphere(
+        Isometry3d::from_translation(shooter.translation),
+        range,
+        WHITE,
+    );
+}
+
 fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
+    res.show_range = false;
     egui::Window::new("Controls").show(contexts.ctx_mut(), |ui| {
-        ui.add(egui::Slider::new(&mut res.x, 2.0..=10.0).text("x"));
-        ui.add(egui::Slider::new(&mut res.z, 15.0..=30.0).text("z"));
-        ui.add(egui::Slider::new(&mut res.vel, 10.0..=25.0).text("vel"));
+        let dragged_x = ui
+            .add(egui::Slider::new(&mut res.x, 2.0..=10.0).text("x"))
+            .dragged();
+        let dragged_z = ui
+            .add(egui::Slider::new(&mut res.z, 15.0..=30.0).text("z"))
+            .dragged();
+        let dragged_vel = ui
+            .add(egui::Slider::new(&mut res.vel, 10.0..=25.0).text("vel"))
+            .dragged();
+
+        if dragged_vel || dragged_x || dragged_z {
+            res.show_range = true;
+        }
 
         ui.checkbox(&mut res.lateral, "lateral");
 
