@@ -7,7 +7,7 @@
 [sh_crates]: https://img.shields.io/crates/v/bevy_ballistic.svg
 [lk_crates]: https://crates.io/crates/bevy_ballistic
 [sh_docs]: https://img.shields.io/docsrs/bevy_ballistic
-[lk_docs]: https://docs.rs/bevy_ios_iap/latest/bevy_ballistic/
+[lk_docs]: https://docs.rs/bevy_ballistic/latest/bevy_ballistic/
 [sh_discord]: https://img.shields.io/discord/1176858176897953872?label=discord&color=5561E6
 [lk_discord]: https://discord.gg/rQNeEnMhus
 
