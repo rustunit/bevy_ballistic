@@ -9,8 +9,15 @@ use bevy::{
 };
 use bevy_ballistic::{ballistic_range, launch_velocity, launch_velocity_lateral};
 use bevy_egui::{EguiContexts, EguiPlugin, egui};
+use bevy_firework::{
+    bevy_utilitarian::prelude::{RandF32, RandValue, RandVec3},
+    core::{BlendMode, ParticleSpawner},
+    curve::{FireworkCurve, FireworkGradient},
+    emission_shape::EmissionShape,
+    plugin::ParticleSystemPlugin,
+};
 use bevy_flycam::prelude::*;
-use std::time::Duration;
+use std::{f32::consts::PI, time::Duration};
 
 #[derive(Component)]
 struct Shooter;
@@ -39,6 +46,9 @@ struct Controls {
     show_range: bool,
 }
 
+#[derive(Event, Clone)]
+struct SpawnParticle(Vec3);
+
 fn main() {
     let mut app = App::new();
 
@@ -47,13 +57,16 @@ fn main() {
 
     app.add_plugins(PhysicsPlugins::default());
     app.add_plugins(PhysicsDebugPlugin::default());
+    app.add_plugins(ParticleSystemPlugin::default());
 
     if !app.is_plugin_added::<EguiPlugin>() {
         app.add_plugins(EguiPlugin);
     }
 
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (update, collisions, ui, controls, gismos));
+    app.add_systems(Update, (update, ui, controls, gismos));
+    app.add_systems(PostUpdate, collisions);
+    app.add_observer(on_particle);
 
     app.run();
 }
@@ -269,14 +282,26 @@ fn update(
 fn collisions(
     mut commands: Commands,
     mut collision_event_reader: EventReader<CollisionStarted>,
-    projectile: Query<&Projectile>,
+    projectile: Query<(&Projectile, &Transform)>,
 ) {
     for CollisionStarted(e1, e2) in collision_event_reader.read() {
+        let mut projectiles = Vec::new();
+
         if projectile.contains(*e1) {
-            commands.entity(*e1).despawn();
+            projectiles.push(*e1);
         }
         if projectile.contains(*e2) {
-            commands.entity(*e2).despawn();
+            projectiles.push(*e2);
+        }
+
+        for e in projectiles {
+            let Ok((_, t)) = projectile.get(e) else {
+                continue;
+            };
+
+            commands.trigger(SpawnParticle(t.translation));
+
+            commands.entity(e).despawn();
         }
     }
 }
@@ -308,4 +333,34 @@ fn uv_debug_texture() -> Image {
         TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::RENDER_WORLD,
     )
+}
+
+fn on_particle(trigger: Trigger<SpawnParticle>, mut commands: Commands) {
+    commands.spawn((
+        Transform::from_translation(trigger.event().0),
+        ParticleSpawner {
+            one_shot: true,
+            rate: 100.0,
+            emission_shape: EmissionShape::Sphere(0.4),
+            lifetime: RandF32::constant(0.1),
+            initial_velocity: RandVec3 {
+                magnitude: RandF32 { min: 0., max: 10. },
+                direction: Vec3::Y,
+                spread: 30. / 180. * PI,
+            },
+            initial_scale: RandF32 {
+                min: 0.02,
+                max: 0.08,
+            },
+            scale_curve: FireworkCurve::constant(1.),
+            color: FireworkGradient::even_samples(vec![
+                LinearRgba::new(1., 0., 0., 1.),
+                LinearRgba::new(1., 1., 0., 1.),
+            ]),
+            blend_mode: BlendMode::Blend,
+            linear_drag: 0.1,
+            pbr: false,
+            ..default()
+        },
+    ));
 }
