@@ -1,6 +1,6 @@
 [package]
 name = "bevy_ballistic"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 readme = "README.md"
 license = "MIT"
@@ -10,7 +10,7 @@ keywords = ["bevy", "gamedev", "math"]
 description = "Simple Bevy math functions to calculate projectile launch angles to hit a specific target."
 
 [dependencies]
-bevy_math = "0.15"
+bevy_math = "0.16.0-rc.3"
 
 [dev-dependencies]
 avian3d = "0.2.1"
