@@ -44,6 +44,7 @@ struct Controls {
     lateral_height: f32,
     lateral: bool,
     show_range: bool,
+    animate: bool,
 }
 
 #[derive(Event, Clone)]
@@ -64,7 +65,7 @@ fn main() {
     }
 
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (update, ui, controls, gismos));
+    app.add_systems(Update, (update, ui, controls, gismos, animate));
     app.add_systems(PostUpdate, collisions);
     app.add_observer(on_particle);
 
@@ -89,13 +90,14 @@ fn setup(
     });
 
     let controls = Controls {
-        x: 5.,
-        z: 20.,
+        x: 2.,
+        z: 15.,
         vel: 15.,
         lateral_vel: 12.,
         lateral_height: 4.,
         lateral: false,
         show_range: false,
+        animate: true,
     };
 
     commands.insert_resource(controls.clone());
@@ -149,7 +151,7 @@ fn setup(
     commands.spawn((
         Camera3d::default(),
         FlyCam,
-        Transform::from_xyz(0.0, 4., 0.0).looking_at(Vec3::new(0., 1., 10.), Vec3::Y),
+        Transform::from_xyz(10.0, 10., 5.0).looking_at(Vec3::new(2., 0., 25.), Vec3::Y),
     ));
 }
 
@@ -190,6 +192,8 @@ fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
             res.show_range = true;
         }
 
+        ui.checkbox(&mut res.animate, "animate");
+
         ui.checkbox(&mut res.lateral, "lateral");
 
         if res.lateral {
@@ -200,15 +204,37 @@ fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
 }
 
 fn controls(
-    res: Res<Controls>,
+    mut res: ResMut<Controls>,
     mut target: Query<&mut Transform, (With<Target>, Without<Shooter>)>,
 ) {
     let Ok(mut target) = target.get_single_mut() else {
         return;
     };
 
-    target.translation.z = res.z;
-    target.translation.x = res.x;
+    if res.animate {
+        res.z = target.translation.z;
+        res.x = target.translation.x;
+    } else {
+        target.translation.z = res.z;
+        target.translation.x = res.x;
+    }
+}
+
+fn animate(
+    controls: Res<Controls>,
+    time: Res<Time>,
+    mut target: Query<&mut LinearVelocity, (With<Target>, Without<Shooter>)>,
+) {
+    let velocity = (time.elapsed_secs() * 2.).sin() * 8.;
+
+    for mut vel in target.iter_mut() {
+        if controls.animate {
+            vel.x = velocity;
+            vel.z = velocity * 2.;
+        } else {
+            *vel = LinearVelocity::ZERO;
+        }
+    }
 }
 
 fn update(
