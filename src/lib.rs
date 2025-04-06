@@ -377,7 +377,7 @@ pub fn launch_velocity_moving_target(
     let c4 = k * k + h * h + j * j;
 
     // Solve quartic
-    let (mut times, num_times) = {
+    let (mut times, _num_times) = {
         let (mut times0, mut times1, mut times2, mut times3): (f64, f64, f64, f64) =
             (0., 0., 0., 0.);
         let num_times = solve_quartic(
@@ -425,8 +425,6 @@ pub fn launch_velocity_moving_target(
         solutions[num_solutions].z = ((j + r * t) / t) as f32;
         num_solutions += 1;
     }
-
-    println!("num solutions: {num_solutions} / times: {num_times}");
 
     if num_solutions == 0 {
         None
