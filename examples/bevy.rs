@@ -7,7 +7,10 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
 };
-use bevy_ballistic::{ballistic_range, launch_velocity, launch_velocity_lateral};
+use bevy_ballistic::{
+    ballistic_range, launch_velocity, launch_velocity_lateral,
+    launch_velocity_lateral_moving_target, launch_velocity_moving_target,
+};
 use bevy_egui::{EguiContexts, EguiPlugin, egui};
 use bevy_firework::{
     bevy_utilitarian::prelude::{RandF32, RandValue, RandVec3},
@@ -45,6 +48,7 @@ struct Controls {
     lateral: bool,
     show_range: bool,
     animate: bool,
+    extrapolated_aim: bool,
 }
 
 #[derive(Event, Clone)]
@@ -98,6 +102,7 @@ fn setup(
         lateral: false,
         show_range: false,
         animate: true,
+        extrapolated_aim: true,
     };
 
     commands.insert_resource(controls.clone());
@@ -184,15 +189,23 @@ fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
         let dragged_z = ui
             .add(egui::Slider::new(&mut res.z, 15.0..=30.0).text("z"))
             .dragged();
-        let dragged_vel = ui
-            .add(egui::Slider::new(&mut res.vel, 10.0..=25.0).text("vel"))
-            .dragged();
+
+        let dragged_vel = if !res.lateral {
+            ui.add(egui::Slider::new(&mut res.vel, 10.0..=25.0).text("vel"))
+                .dragged()
+        } else {
+            false
+        };
 
         if dragged_vel || dragged_x || dragged_z {
             res.show_range = true;
         }
 
         ui.checkbox(&mut res.animate, "animate");
+
+        if res.animate {
+            ui.checkbox(&mut res.extrapolated_aim, "extrapolated aim");
+        }
 
         ui.checkbox(&mut res.lateral, "lateral");
 
@@ -225,12 +238,13 @@ fn animate(
     time: Res<Time>,
     mut target: Query<&mut LinearVelocity, (With<Target>, Without<Shooter>)>,
 ) {
-    let velocity = (time.elapsed_secs() * 2.).sin() * 8.;
+    let direction = (time.elapsed_secs() * 0.5).sin();
+    let direction: f32 = if direction > 0. { 1. } else { -1. };
 
     for mut vel in target.iter_mut() {
         if controls.animate {
-            vel.x = velocity;
-            vel.z = velocity * 2.;
+            vel.x = 1.5 * direction;
+            vel.z = 2. * 1.5 * direction;
         } else {
             *vel = LinearVelocity::ZERO;
         }
@@ -243,7 +257,7 @@ fn update(
     controls: Res<Controls>,
     time: Res<Time>,
     shooter: Query<&Transform, (With<Shooter>, Without<Target>)>,
-    target: Query<&Transform, (With<Target>, Without<Shooter>)>,
+    target: Query<(&Transform, &LinearVelocity), (With<Target>, Without<Shooter>)>,
 ) {
     shooting.timer.tick(time.delta());
 
@@ -251,20 +265,33 @@ fn update(
         let Ok(shooter) = shooter.get_single() else {
             return;
         };
-        let Ok(target) = target.get_single() else {
+        let Ok((target, LinearVelocity(target_vel))) = target.get_single() else {
             return;
         };
 
         if controls.lateral {
-            let Some((vel, gravity)) = launch_velocity_lateral(
-                shooter.translation,
-                controls.lateral_vel,
-                target.translation,
-                controls.lateral_height,
-            ) else {
+            let launch_vel = if controls.extrapolated_aim {
+                launch_velocity_lateral_moving_target(
+                    shooter.translation,
+                    controls.lateral_vel,
+                    target.translation,
+                    *target_vel,
+                    controls.lateral_height,
+                )
+            } else {
+                launch_velocity_lateral(
+                    shooter.translation,
+                    controls.lateral_vel,
+                    target.translation,
+                    controls.lateral_height,
+                )
+            };
+            let Some((vel, gravity)) = launch_vel else {
                 warn!("cannot reach target");
                 return;
             };
+
+            info!("launch vel: {launch_vel:?}");
 
             commands.spawn((
                 Name::new("projectile"),
@@ -280,9 +307,19 @@ fn update(
                 CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
             ));
         } else {
-            let Some((vel_low, vel_high)) =
+            let launch_vel = if controls.extrapolated_aim {
+                launch_velocity_moving_target(
+                    shooter.translation,
+                    controls.vel,
+                    target.translation,
+                    *target_vel,
+                    9.81,
+                )
+            } else {
                 launch_velocity(shooter.translation, target.translation, controls.vel, 9.81)
-            else {
+            };
+
+            let Some((vel_low, vel_high)) = launch_vel else {
                 warn!("cannot reach target");
                 return;
             };
