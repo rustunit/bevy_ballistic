@@ -7,7 +7,7 @@
 use bevy_math::Vec3;
 use std::{
     cmp::Ordering,
-    f32::{EPSILON, consts::FRAC_PI_4},
+    f32::consts::FRAC_PI_4,
     f64::{self, consts::PI},
 };
 
@@ -79,7 +79,7 @@ pub fn launch_velocity(
 
 fn is_zero(d: f64) -> bool {
     const EPS: f64 = 1e-9;
-    return d > -EPS && d < EPS;
+    d > -EPS && d < EPS
 }
 
 fn get_cubic_root(value: f64) -> f64 {
@@ -98,29 +98,23 @@ fn solve_quadric(c0: f64, c1: f64, c2: f64, s0: &mut f64, s1: &mut f64) -> i32 {
     *s0 = f64::NAN;
     *s1 = f64::NAN;
 
-    let p: f64;
-    let q: f64;
-    let d: f64;
-
     /* normal form: x^2 + px + q = 0 */
-    p = c1 / (2. * c0);
-    q = c2 / c0;
+    let p = c1 / (2. * c0);
+    let q = c2 / c0;
 
-    d = p * p - q;
+    let d = p * p - q;
 
     if is_zero(d) {
         *s0 = -p;
-        return 1;
+        1
     } else if d < 0. {
-        return 0;
-    } else
-    /* if (D > 0) */
-    {
+        0
+    } else {
         let sqrt_d = d.sqrt();
 
         *s0 = sqrt_d - p;
         *s1 = -sqrt_d - p;
-        return 2;
+        2
     }
 }
 
@@ -140,7 +134,6 @@ fn solve_cubic(
     *s2 = f64::NAN;
 
     let num: i32;
-    let sub: f64;
     let (a, b, c): (f64, f64, f64);
     let (sq_a, p, q): (f64, f64, f64);
     let (cb_p, d): (f64, f64);
@@ -195,7 +188,7 @@ fn solve_cubic(
     }
 
     /* resubstitute */
-    sub = 1.0 / 3. * a;
+    let sub = 1.0 / 3. * a;
 
     if num > 0 {
         *s0 -= sub;
@@ -207,11 +200,12 @@ fn solve_cubic(
         *s2 -= sub;
     }
 
-    return num;
+    num
 }
 
 // Solve quartic function: c0*x^4 + c1*x^3 + c2*x^2 + c3*x + c4.
 // Returns number of solutions.
+#[allow(clippy::too_many_arguments)]
 fn solve_quartic(
     c0: f64,
     c1: f64,
@@ -322,7 +316,7 @@ fn solve_quartic(
         *s3 -= sub;
     }
 
-    return num;
+    num
 }
 
 pub fn launch_velocity_moving_target(
@@ -455,7 +449,7 @@ pub fn launch_velocity_lateral(
     let diff_xz = Vec3::new(diff.x, 0., diff.z);
 
     let lateral_distance = diff_xz.length();
-    if lateral_distance <= EPSILON {
+    if lateral_distance <= f32::EPSILON {
         return None;
     }
 
