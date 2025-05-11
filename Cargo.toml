@@ -13,8 +13,8 @@ description = "Simple Bevy math functions to calculate projectile launch angles 
 bevy_math = "0.16.0"
 
 [dev-dependencies]
-avian3d = "0.2.1"
-bevy = "0.15"
-bevy_egui = "0.33.0"
-bevy_firework = "0.6.0"
-bevy_flycam = "0.15.0"
+avian3d = "0.3"
+bevy = "0.16"
+bevy_egui = "0.34.1"
+bevy_firework = { git = "https://github.com/mbrea-c/bevy_firework.git", branch = "update_bevy_016" }
+bevy_flycam = { git = "https://github.com/kristoff3r/bevy_flycam.git", rev = "7d738c7" }
