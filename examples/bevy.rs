@@ -54,6 +54,13 @@ struct Controls {
 #[derive(Event, Clone)]
 struct SpawnParticle(Vec3);
 
+#[derive(Event, Clone)]
+struct SpawnProjectile {
+    gravity: f32,
+    pos: Vec3,
+    vel: Vec3,
+}
+
 fn main() {
     let mut app = App::new();
 
@@ -65,13 +72,16 @@ fn main() {
     app.add_plugins(ParticleSystemPlugin::default());
 
     if !app.is_plugin_added::<EguiPlugin>() {
-        app.add_plugins(EguiPlugin);
+        app.add_plugins(EguiPlugin {
+            enable_multipass_for_primary_context: false,
+        });
     }
 
     app.add_systems(Startup, setup);
     app.add_systems(Update, (update, ui, controls, gismos, animate));
-    app.add_systems(PostUpdate, collisions);
+
     app.add_observer(on_particle);
+    app.add_observer(on_spawn);
 
     app.run();
 }
@@ -168,7 +178,7 @@ fn gismos(
     if !controls.show_range {
         return;
     }
-    let Ok(shooter) = shooter.get_single() else {
+    let Ok(shooter) = shooter.single() else {
         return;
     };
 
@@ -220,7 +230,7 @@ fn controls(
     mut res: ResMut<Controls>,
     mut target: Query<&mut Transform, (With<Target>, Without<Shooter>)>,
 ) {
-    let Ok(mut target) = target.get_single_mut() else {
+    let Ok(mut target) = target.single_mut() else {
         return;
     };
 
@@ -262,10 +272,10 @@ fn update(
     shooting.timer.tick(time.delta());
 
     if shooting.timer.just_finished() {
-        let Ok(shooter) = shooter.get_single() else {
+        let Ok(shooter) = shooter.single() else {
             return;
         };
-        let Ok((target, LinearVelocity(target_vel))) = target.get_single() else {
+        let Ok((target, LinearVelocity(target_vel))) = target.single() else {
             return;
         };
 
@@ -291,21 +301,12 @@ fn update(
                 return;
             };
 
-            info!("launch vel: {launch_vel:?}");
-
-            commands.spawn((
-                Name::new("projectile"),
-                Projectile,
-                Mesh3d(shooting.mesh.clone()),
-                MeshMaterial3d(shooting.material.clone()),
-                Collider::sphere(0.5),
-                GravityScale(gravity / 9.81),
-                RigidBody::Dynamic,
-                LinearVelocity(vel),
-                Visibility::default(),
-                Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
-                CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
-            ));
+            // info!("launch vel: {launch_vel:?}");
+            commands.trigger(SpawnProjectile {
+                gravity,
+                vel,
+                pos: shooter.translation,
+            });
         } else {
             let launch_vel = if controls.extrapolated_aim {
                 launch_velocity_moving_target(
@@ -325,46 +326,12 @@ fn update(
             };
 
             for vel in [vel_low, vel_high] {
-                commands.spawn((
-                    Name::new("projectile"),
-                    Projectile,
-                    Mesh3d(shooting.mesh.clone()),
-                    MeshMaterial3d(shooting.material.clone()),
-                    Collider::sphere(0.5),
-                    RigidBody::Dynamic,
-                    LinearVelocity(vel),
-                    Visibility::default(),
-                    Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
-                    CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
-                ));
+                commands.trigger(SpawnProjectile {
+                    gravity: 9.81,
+                    vel,
+                    pos: shooter.translation,
+                });
             }
-        }
-    }
-}
-
-fn collisions(
-    mut commands: Commands,
-    mut collision_event_reader: EventReader<CollisionStarted>,
-    projectile: Query<(&Projectile, &Transform)>,
-) {
-    for CollisionStarted(e1, e2) in collision_event_reader.read() {
-        let mut projectiles = Vec::new();
-
-        if projectile.contains(*e1) {
-            projectiles.push(*e1);
-        }
-        if projectile.contains(*e2) {
-            projectiles.push(*e2);
-        }
-
-        for e in projectiles {
-            let Ok((_, t)) = projectile.get(e) else {
-                continue;
-            };
-
-            commands.trigger(SpawnParticle(t.translation));
-
-            commands.entity(e).despawn();
         }
     }
 }
@@ -396,6 +363,32 @@ fn uv_debug_texture() -> Image {
         TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::RENDER_WORLD,
     )
+}
+
+fn on_spawn(trigger: Trigger<SpawnProjectile>, mut commands: Commands, shooting: Res<Shooting>) {
+    commands
+        .spawn((
+            Name::new("projectile"),
+            Projectile,
+            Mesh3d(shooting.mesh.clone()),
+            MeshMaterial3d(shooting.material.clone()),
+            Collider::sphere(0.5),
+            RigidBody::Dynamic,
+            GravityScale(trigger.gravity / 9.81),
+            LinearVelocity(trigger.vel),
+            Visibility::default(),
+            Transform::from_translation(trigger.pos).with_scale(Vec3::splat(0.4)),
+            CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
+            CollisionEventsEnabled,
+        ))
+        .observe(
+            |trigger: Trigger<OnCollisionStart>, mut cmds: Commands, query: Query<&Transform>| {
+                let t = query.get(trigger.target()).unwrap();
+                cmds.trigger(SpawnParticle(t.translation));
+
+                cmds.entity(trigger.target()).despawn();
+            },
+        );
 }
 
 fn on_particle(trigger: Trigger<SpawnParticle>, mut commands: Commands) {
