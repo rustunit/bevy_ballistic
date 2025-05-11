@@ -23,10 +23,6 @@ name = "accesskit"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "becf0eb5215b6ecb0a739c31c21bd83c4f326524c9b46b7e882d77559b60a529"
-dependencies = [
- "enumn",
- "serde",
-]
 
 [[package]]
 name = "accesskit_consumer"
@@ -385,35 +381,15 @@ dependencies = [
 
 [[package]]
 name = "avian3d"
-version = "0.2.0"
-source = "git+https://github.com/Jondolf/avian.git?rev=910ab042828986e27f32fc2e27f6f2ee5576df1e#910ab042828986e27f32fc2e27f6f2ee5576df1e"
-dependencies = [
- "avian_derive 0.2.2 (git+https://github.com/Jondolf/avian.git?rev=910ab042828986e27f32fc2e27f6f2ee5576df1e)",
- "bevy",
- "bevy_heavy 0.2.0 (git+https://github.com/Jondolf/bevy_heavy)",
- "bevy_math",
- "bevy_transform_interpolation 0.2.0 (git+https://github.com/Jondolf/bevy_transform_interpolation)",
- "bitflags 2.9.0",
- "derive_more",
- "itertools 0.13.0",
- "nalgebra",
- "parry3d",
- "parry3d-f64",
- "serde",
- "thread_local",
-]
-
-[[package]]
-name = "avian3d"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8ba10c23fee3d432f3c6cf8d036e269d952b8840c1ca4fa6a021ab926786dc4"
 dependencies = [
- "avian_derive 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "avian_derive",
  "bevy",
- "bevy_heavy 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bevy_heavy",
  "bevy_math",
- "bevy_transform_interpolation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bevy_transform_interpolation",
  "bitflags 2.9.0",
  "derive_more",
  "itertools 0.13.0",
@@ -428,17 +404,6 @@ name = "avian_derive"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12b257f601a1535e0d4a7a7796f535e3a13de62fd422b16dff7c14d27f0d4048"
-dependencies = [
- "proc-macro-error2",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "avian_derive"
-version = "0.2.2"
-source = "git+https://github.com/Jondolf/avian.git?rev=910ab042828986e27f32fc2e27f6f2ee5576df1e#910ab042828986e27f32fc2e27f6f2ee5576df1e"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -487,7 +452,6 @@ dependencies = [
  "bevy_derive",
  "bevy_ecs",
  "bevy_reflect",
- "serde",
 ]
 
 [[package]]
@@ -619,9 +583,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_ballistic"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
- "avian3d 0.3.0",
+ "avian3d",
  "bevy",
  "bevy_egui",
  "bevy_firework",
@@ -796,7 +760,6 @@ name = "bevy_firework"
 version = "0.7.0"
 source = "git+https://github.com/mbrea-c/bevy_firework.git?branch=update_bevy_016#af4c56abc58d011b9478f2bb17bc33e215d49add"
 dependencies = [
- "avian3d 0.2.0",
  "bevy",
  "bevy_utilitarian",
  "bytemuck",
@@ -912,16 +875,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_heavy"
-version = "0.2.0"
-source = "git+https://github.com/Jondolf/bevy_heavy#b7141f6ca5b9c2f099cf0db10fad04458b9a836e"
-dependencies = [
- "bevy_math",
- "bevy_reflect",
- "serde",
-]
-
-[[package]]
 name = "bevy_image"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -963,7 +916,6 @@ dependencies = [
  "bevy_utils",
  "derive_more",
  "log",
- "serde",
  "smol_str",
  "thiserror 2.0.12",
 ]
@@ -1472,15 +1424,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_transform_interpolation"
-version = "0.2.0"
-source = "git+https://github.com/Jondolf/bevy_transform_interpolation#2284c8875aa095db51f141df386cfff9e3bdec5a"
-dependencies = [
- "bevy",
- "serde",
-]
-
-[[package]]
 name = "bevy_ui"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1509,7 +1452,6 @@ dependencies = [
  "bytemuck",
  "derive_more",
  "nonmax",
- "serde",
  "smallvec",
  "taffy",
  "thiserror 2.0.12",
@@ -1585,7 +1527,6 @@ dependencies = [
  "cfg-if",
  "crossbeam-channel",
  "raw-window-handle",
- "serde",
  "tracing",
  "wasm-bindgen",
  "web-sys",
@@ -2306,17 +2247,6 @@ name = "encase_derive_impl"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f97b51c5cc57ef7c5f7a0c57c250251c49ee4c28f819f87ac32f4aceabc36792"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "enumn"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f9ed6b3789237c8a0c1c505af1c7eb2c560df6186f01b098c3a1064ea532f38"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3468,7 +3398,6 @@ dependencies = [
  "num-complex",
  "num-rational",
  "num-traits",
- "serde",
  "simba",
  "typenum",
 ]
@@ -3631,7 +3560,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -4105,7 +4033,6 @@ dependencies = [
  "rayon",
  "rstar",
  "rustc-hash 2.1.1",
- "serde",
  "simba",
  "slab",
  "smallvec",
@@ -4133,7 +4060,6 @@ dependencies = [
  "rayon",
  "rstar",
  "rustc-hash 2.1.1",
- "serde",
  "simba",
  "slab",
  "smallvec",
@@ -4902,9 +4828,6 @@ name = "smallvec"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "smithay-client-toolkit"

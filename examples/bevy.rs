@@ -65,7 +65,9 @@ fn main() {
     app.add_plugins(ParticleSystemPlugin::default());
 
     if !app.is_plugin_added::<EguiPlugin>() {
-        app.add_plugins(EguiPlugin);
+        app.add_plugins(EguiPlugin {
+            enable_multipass_for_primary_context: false,
+        });
     }
 
     app.add_systems(Startup, setup);
@@ -168,7 +170,7 @@ fn gismos(
     if !controls.show_range {
         return;
     }
-    let Ok(shooter) = shooter.get_single() else {
+    let Ok(shooter) = shooter.single() else {
         return;
     };
 
@@ -220,7 +222,7 @@ fn controls(
     mut res: ResMut<Controls>,
     mut target: Query<&mut Transform, (With<Target>, Without<Shooter>)>,
 ) {
-    let Ok(mut target) = target.get_single_mut() else {
+    let Ok(mut target) = target.single_mut() else {
         return;
     };
 
@@ -262,10 +264,10 @@ fn update(
     shooting.timer.tick(time.delta());
 
     if shooting.timer.just_finished() {
-        let Ok(shooter) = shooter.get_single() else {
+        let Ok(shooter) = shooter.single() else {
             return;
         };
-        let Ok((target, LinearVelocity(target_vel))) = target.get_single() else {
+        let Ok((target, LinearVelocity(target_vel))) = target.single() else {
             return;
         };
 
@@ -305,6 +307,7 @@ fn update(
                 Visibility::default(),
                 Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
                 CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
+                CollisionEventsEnabled,
             ));
         } else {
             let launch_vel = if controls.extrapolated_aim {
@@ -336,6 +339,7 @@ fn update(
                     Visibility::default(),
                     Transform::from_translation(shooter.translation).with_scale(Vec3::splat(0.4)),
                     CollisionLayers::new(LayerMask(0b100), LayerMask(0b011)),
+                    CollisionEventsEnabled,
                 ));
             }
         }

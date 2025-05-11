@@ -40,7 +40,7 @@ cargo r --example bevy
 
 |bevy|crate|
 |---|---|
-|0.16|0.3,main|
+|0.16|0.3-0.4,main|
 |0.15|0.1-0.2|
 
 # License
