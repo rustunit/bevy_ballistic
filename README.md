@@ -22,10 +22,6 @@ Based on this [article](https://www.forrestthewoods.com/blog/solving_ballistic_t
 cargo r --example bevy
 ```
 
-## Todo
-
-* [ ] support aiming at predicted future position based on moving target velocity
-
 ## Our Other Crates
 
 - [bevy_debug_log](https://github.com/rustunit/bevy_debug_log)
