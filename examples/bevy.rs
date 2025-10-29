@@ -1,20 +1,18 @@
 use avian3d::prelude::*;
 use bevy::{
+    asset::RenderAssetUsages,
     color::palettes::{basic::SILVER, css::WHITE},
     prelude::*,
-    render::{
-        render_asset::RenderAssetUsages,
-        render_resource::{Extent3d, TextureDimension, TextureFormat},
-    },
+    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 use bevy_ballistic::{
     ballistic_range, launch_velocity, launch_velocity_lateral,
     launch_velocity_lateral_moving_target, launch_velocity_moving_target,
 };
-use bevy_egui::{EguiContexts, EguiPlugin, egui};
+use bevy_egui::{EguiContexts, EguiPlugin, EguiPrimaryContextPass, egui};
 use bevy_firework::{
     bevy_utilitarian::prelude::{RandF32, RandValue, RandVec3},
-    core::{BlendMode, ParticleSpawner},
+    core::{BlendMode, EmissionPacing, EmissionSettings, ParticleSettings, ParticleSpawner},
     curve::{FireworkCurve, FireworkGradient},
     emission_shape::EmissionShape,
     plugin::ParticleSystemPlugin,
@@ -70,15 +68,11 @@ fn main() {
     app.add_plugins(PhysicsPlugins::default());
     app.add_plugins(PhysicsDebugPlugin::default());
     app.add_plugins(ParticleSystemPlugin::default());
-
-    if !app.is_plugin_added::<EguiPlugin>() {
-        app.add_plugins(EguiPlugin {
-            enable_multipass_for_primary_context: false,
-        });
-    }
+    app.add_plugins(EguiPlugin::default());
 
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (update, ui, controls, gismos, animate));
+    app.add_systems(Update, (update, controls, gismos, animate));
+    app.add_systems(EguiPrimaryContextPass, ui);
 
     app.add_observer(on_particle);
     app.add_observer(on_spawn);
@@ -159,7 +153,7 @@ fn setup(
         ),
         MeshMaterial3d(materials.add(Color::from(SILVER))),
         RigidBody::Static,
-        Collider::half_space(Vec3::Y),
+        ColliderConstructor::ConvexHullFromMesh,
         CollisionLayers::new(LayerMask(0b010), LayerMask::ALL),
     ));
 
@@ -190,9 +184,9 @@ fn gismos(
     );
 }
 
-fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
+fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) -> Result {
     res.show_range = false;
-    egui::Window::new("Controls").show(contexts.ctx_mut(), |ui| {
+    egui::Window::new("Controls").show(contexts.ctx_mut()?, |ui| {
         let dragged_x = ui
             .add(egui::Slider::new(&mut res.x, 2.0..=10.0).text("x"))
             .dragged();
@@ -224,6 +218,8 @@ fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) {
             ui.add(egui::Slider::new(&mut res.lateral_height, 1.0..=15.0).text("lateral height"));
         }
     });
+
+    Ok(())
 }
 
 fn controls(
@@ -365,7 +361,7 @@ fn uv_debug_texture() -> Image {
     )
 }
 
-fn on_spawn(trigger: Trigger<SpawnProjectile>, mut commands: Commands, shooting: Res<Shooting>) {
+fn on_spawn(trigger: On<SpawnProjectile>, mut commands: Commands, shooting: Res<Shooting>) {
     commands
         .spawn((
             Name::new("projectile"),
@@ -382,40 +378,45 @@ fn on_spawn(trigger: Trigger<SpawnProjectile>, mut commands: Commands, shooting:
             CollisionEventsEnabled,
         ))
         .observe(
-            |trigger: Trigger<OnCollisionStart>, mut cmds: Commands, query: Query<&Transform>| {
-                let t = query.get(trigger.target()).unwrap();
+            |trigger: On<CollisionStart>, mut cmds: Commands, query: Query<&Transform>| -> Result {
+                let t = query.get(trigger.collider1)?;
                 cmds.trigger(SpawnParticle(t.translation));
-
-                cmds.entity(trigger.target()).despawn();
+                cmds.entity(trigger.collider1).try_despawn();
+                Ok(())
             },
         );
 }
 
-fn on_particle(trigger: Trigger<SpawnParticle>, mut commands: Commands) {
+fn on_particle(spawn: On<SpawnParticle>, mut commands: Commands) {
     commands.spawn((
-        Transform::from_translation(trigger.event().0),
+        Transform::from_translation(spawn.event().0),
         ParticleSpawner {
-            one_shot: true,
-            rate: 100.0,
-            emission_shape: EmissionShape::Sphere(0.4),
-            lifetime: RandF32::constant(0.1),
-            initial_velocity: RandVec3 {
-                magnitude: RandF32 { min: 0., max: 10. },
-                direction: Vec3::Y,
-                spread: 30. / 180. * PI,
-            },
-            initial_scale: RandF32 {
-                min: 0.02,
-                max: 0.08,
-            },
-            scale_curve: FireworkCurve::constant(1.),
-            color: FireworkGradient::even_samples(vec![
-                LinearRgba::new(1., 0., 0., 1.),
-                LinearRgba::new(1., 1., 0., 1.),
-            ]),
-            blend_mode: BlendMode::Blend,
-            linear_drag: 0.1,
-            pbr: false,
+            particle_settings: vec![ParticleSettings {
+                lifetime: RandF32::constant(0.1),
+                initial_scale: RandF32 {
+                    min: 0.02,
+                    max: 0.08,
+                },
+                scale_curve: FireworkCurve::constant(1.),
+                base_color: FireworkGradient::even_samples(vec![
+                    LinearRgba::new(1., 0., 0., 1.),
+                    LinearRgba::new(1., 1., 0., 1.),
+                ]),
+                blend_mode: BlendMode::Blend,
+                linear_drag: 0.1,
+                pbr: false,
+                ..default()
+            }],
+            emission_settings: vec![EmissionSettings {
+                initial_velocity: RandVec3 {
+                    magnitude: RandF32 { min: 0., max: 10. },
+                    direction: Vec3::Y,
+                    spread: 30. / 180. * PI,
+                },
+                emission_shape: EmissionShape::Sphere(0.4),
+                emission_pacing: EmissionPacing::OneShot(100),
+                ..default()
+            }],
             ..default()
         },
     ));
