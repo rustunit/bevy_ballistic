@@ -17,4 +17,4 @@ avian3d = "0.4"
 bevy = "0.17"
 bevy_egui = "0.38"
 bevy_flycam = "0.17"
-bevy_firework = { git="https://github.com/SarahIhme/bevy_firework.git", branch="bevy_017_migration" }
+bevy_firework = "0.8"

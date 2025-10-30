@@ -786,7 +786,8 @@ dependencies = [
 [[package]]
 name = "bevy_firework"
 version = "0.8.0"
-source = "git+https://github.com/SarahIhme/bevy_firework.git?branch=bevy_017_migration#20047c87e022e55ceda71fbb6a80e34d0f4ab740"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5b2500f08b17ec23f7b366ae6baec444fbcc1d2bc9e846fd2dc28d45f0eedb7"
 dependencies = [
  "avian3d",
  "bevy",
