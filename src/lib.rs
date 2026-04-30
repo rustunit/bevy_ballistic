@@ -5,6 +5,7 @@
 //! Based on this [article](https://www.forrestthewoods.com/blog/solving_ballistic_trajectories/) by Forrest Smith
 
 use bevy_math::Vec3;
+use libm::{acos, atan2f, atanf, cos, cosf, pow, sinf};
 use std::{
     cmp::Ordering,
     f32::consts::FRAC_PI_4,
@@ -20,8 +21,8 @@ pub fn ballistic_range(speed: f32, gravity: f32, initial_height: f32) -> f32 {
     //   (3) via quadratic: t = (speed*sin O)/gravity + sqrt(speed*speed*sin O + 2*gravity*initial_height)/gravity    [ignore smaller root]
     //   (4) solution: range = x = (speed*cos O)/gravity * sqrt(speed*speed*sin O + 2*gravity*initial_height)    [plug t back into x=speed*time*cos O]
     let angle = FRAC_PI_4; // no air resistence, so 45 degrees provides maximum range
-    let cos = angle.cos();
-    let sin = angle.sin();
+    let cos = cosf(angle);
+    let sin = sinf(angle);
 
     (speed * cos / gravity)
         * (speed * sin + (speed * speed * sin * sin + 2. * gravity * initial_height).sqrt())
@@ -56,16 +57,16 @@ pub fn launch_velocity(
     let term1 = v_squared / (gravity * horizontal_dist);
     let term2 = discriminant.sqrt() / (gravity * horizontal_dist);
 
-    let pitch_high = (term1 + term2).atan();
-    let pitch_low = (term1 - term2).atan();
+    let pitch_high = atanf(term1 + term2);
+    let pitch_low = atanf(term1 - term2);
 
     // Calculate yaw angle
-    let yaw = delta.z.atan2(delta.x);
+    let yaw = atan2f(delta.z, delta.x);
 
     let pitch = move |pitch: f32| {
-        let dir_x = pitch.cos() * yaw.cos();
-        let dir_y = pitch.sin();
-        let dir_z = pitch.cos() * yaw.sin();
+        let dir_x = cosf(pitch) * cosf(yaw);
+        let dir_y = sinf(pitch);
+        let dir_z = cosf(pitch) * sinf(yaw);
 
         Vec3::new(
             initial_velocity * dir_x,
@@ -84,9 +85,9 @@ fn is_zero(d: f64) -> bool {
 
 fn get_cubic_root(value: f64) -> f64 {
     if value > 0.0 {
-        value.powf(1.0 / 3.0)
+        pow(value, 1.0 / 3.0)
     } else if value < 0.0 {
-        -(-value.powf(1.0 / 3.0))
+        -pow(-value, 1.0 / 3.0)
     } else {
         0.0
     }
@@ -169,12 +170,12 @@ fn solve_cubic(
     } else if d < 0.
     /* Casus irreducibilis: three real solutions */
     {
-        let phi = 1.0 / 3. * (-q / (-cb_p).sqrt()).acos();
+        let phi = 1.0 / 3. * acos(-q / (-cb_p).sqrt());
         let t = 2. * (-p).sqrt();
 
-        *s0 = t * (phi).cos();
-        *s1 = -t * (phi + PI / 3.).cos();
-        *s2 = -t * (phi - PI / 3.).cos();
+        *s0 = t * cos(phi);
+        *s1 = -t * cos(phi + PI / 3.);
+        *s2 = -t * cos(phi - PI / 3.);
         num = 3;
     } else
     /* one real solution */
