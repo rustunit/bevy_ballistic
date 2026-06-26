@@ -15,7 +15,7 @@ libm = "0.2"
 
 [dev-dependencies]
 avian3d = "0.5"
-bevy = "0.18"
+bevy = "0.19"
 bevy_egui = "0.39"
 bevy_flycam = "0.18"
 bevy_firework = "0.9"
