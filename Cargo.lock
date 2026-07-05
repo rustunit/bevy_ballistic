@@ -924,7 +924,7 @@ dependencies = [
 [[package]]
 name = "bevy_firework"
 version = "0.9.1"
-source = "git+https://github.com/extrawurst/bevy_firework?branch=chore%2Fbevy-0.19#49d1bc731f40703264bdd5058cf614b469767c3e"
+source = "git+https://github.com/mbrea-c/bevy_firework?rev=607b706#607b706a6e3ea39674cd548d31a012d62fee585a"
 dependencies = [
  "avian3d",
  "bevy",
