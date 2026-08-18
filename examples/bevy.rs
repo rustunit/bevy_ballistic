@@ -66,7 +66,7 @@ fn main() {
         .add_plugins(NoCameraPlayerPlugin);
 
     app.add_plugins(PhysicsPlugins::default());
-    app.add_plugins(PhysicsDebugPlugin::default());
+    app.add_plugins(PhysicsDebugPlugin);
     app.add_plugins(ParticleSystemPlugin::default());
     app.add_plugins(EguiPlugin::default());
 
