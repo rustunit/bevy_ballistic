@@ -1,6 +1,6 @@
 [package]
 name = "bevy_ballistic"
-version = "0.7.0-rc.1"
+version = "0.7.0"
 edition = "2024"
 readme = "README.md"
 license = "MIT"
@@ -16,9 +16,9 @@ libm = "0.2"
 [dev-dependencies]
 avian3d = "0.7"
 bevy = "0.19"
-bevy_egui = "0.41"
-bevy_flycam = { git = "https://github.com/extrawurst/bevy_flycam", branch = "bevy-0.19" }
-bevy_firework = { git = "https://github.com/mbrea-c/bevy_firework", rev = "607b706" }
+bevy_egui = "0.42"
+bevy_flycam = "0.19"
+bevy_firework = "0.10"
 
 # objc2 0.5 (via winit 0.30) has an overly-strict debug-only message-encoding
 # verifier that false-positives on macOS 26's NSFastEnumeration (q vs Q return
