@@ -66,7 +66,7 @@ fn main() {
         .add_plugins(NoCameraPlayerPlugin);
 
     app.add_plugins(PhysicsPlugins::default());
-    app.add_plugins(PhysicsDebugPlugin::default());
+    app.add_plugins(PhysicsDebugPlugin);
     app.add_plugins(ParticleSystemPlugin::default());
     app.add_plugins(EguiPlugin::default());
 
@@ -131,7 +131,7 @@ fn setup(
 
     commands.spawn((
         PointLight {
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             intensity: 10_000_000.,
             range: 100.0,
             shadow_depth_bias: 0.2,
