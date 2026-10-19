@@ -1,3 +1,6 @@
+// macOS ld notes the debug binary's >16MB __eh_frame; harmless.
+#![allow(linker_messages)]
+
 use avian3d::prelude::*;
 use bevy::{
     asset::RenderAssetUsages,
@@ -262,8 +265,8 @@ fn update(
     mut shooting: ResMut<Shooting>,
     controls: Res<Controls>,
     time: Res<Time>,
-    shooter: Query<&Transform, (With<Shooter>, Without<Target>)>,
-    target: Query<(&Transform, &LinearVelocity), (With<Target>, Without<Shooter>)>,
+    shooter: Query<&Transform, With<Shooter>>,
+    target: Query<(&Transform, &LinearVelocity), With<Target>>,
 ) {
     shooting.timer.tick(time.delta());
 

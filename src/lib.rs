@@ -6,11 +6,7 @@
 
 use bevy_math::Vec3;
 use libm::{acos, atan2f, atanf, cos, cosf, pow, sinf};
-use std::{
-    cmp::Ordering,
-    f32::consts::FRAC_PI_4,
-    f64::{self, consts::PI},
-};
+use std::{cmp::Ordering, f32::consts::FRAC_PI_4, f64::consts::PI};
 
 /// Caluculate range of a projectile being fired from `initial_height`
 /// with `speed` and only affected by `gravity`.
@@ -495,14 +491,12 @@ pub fn launch_velocity_lateral_moving_target(
     let valid0 = n > 0 && t0 > 0.;
     let valid1 = n > 1 && t1 > 0.;
 
-    let t: f32;
-    if !valid0 && !valid1 {
-        return None;
-    } else if valid0 && valid1 {
-        t = t0.min(t1) as f32;
-    } else {
-        t = if valid0 { t0 } else { t1 } as f32;
-    }
+    let t = match (valid0, valid1) {
+        (true, true) => t0.min(t1),
+        (true, false) => t0,
+        (false, true) => t1,
+        (false, false) => return None,
+    } as f32;
 
     // Calculate impact point
     let impact_point = target + (target_velocity * t);
