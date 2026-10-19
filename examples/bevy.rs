@@ -393,6 +393,8 @@ fn on_spawn(trigger: On<SpawnProjectile>, mut commands: Commands, shooting: Res<
 fn on_particle(spawn: On<SpawnParticle>, mut commands: Commands) {
     commands.spawn((
         Transform::from_translation(spawn.event().0),
+        // Spawned mid physics step, so propagation won't run before firework's OneShot burst.
+        GlobalTransform::from_translation(spawn.event().0),
         ParticleSpawner {
             particle_settings: vec![ParticleSettings {
                 lifetime: RandF32::constant(0.1),
