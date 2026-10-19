@@ -627,7 +627,6 @@ dependencies = [
  "bevy",
  "bevy_egui",
  "bevy_firework",
- "bevy_flycam",
  "bevy_math",
  "libm",
 ]
@@ -656,6 +655,24 @@ dependencies = [
  "smallvec",
  "thiserror 2.0.20",
  "wgpu-types",
+]
+
+[[package]]
+name = "bevy_camera_controller"
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfb356016add201b084008c4320d8ef1696a843f0dcf92db35992731cfef65b1"
+dependencies = [
+ "bevy_app",
+ "bevy_camera",
+ "bevy_ecs",
+ "bevy_input",
+ "bevy_log",
+ "bevy_math",
+ "bevy_picking",
+ "bevy_time",
+ "bevy_transform",
+ "bevy_window",
 ]
 
 [[package]]
@@ -938,15 +955,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_flycam"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "981267629600f36fe5c71c6fb5bfa16eac2d244f449f6f5e3be12abee9bdafc8"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "bevy_gilrs"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1151,6 +1159,7 @@ dependencies = [
  "bevy_asset",
  "bevy_audio",
  "bevy_camera",
+ "bevy_camera_controller",
  "bevy_clipboard",
  "bevy_color",
  "bevy_core_pipeline",

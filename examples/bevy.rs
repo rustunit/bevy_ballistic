@@ -1,6 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{
     asset::RenderAssetUsages,
+    camera_controller::free_camera::{FreeCamera, FreeCameraPlugin},
     color::palettes::{basic::SILVER, css::WHITE},
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
@@ -17,7 +18,6 @@ use bevy_firework::{
     emission_shape::EmissionShape,
     plugin::ParticleSystemPlugin,
 };
-use bevy_flycam::prelude::*;
 use std::{f32::consts::PI, time::Duration};
 
 #[derive(Component)]
@@ -63,7 +63,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugins((DefaultPlugins.set(ImagePlugin::default_nearest()),))
-        .add_plugins(NoCameraPlayerPlugin);
+        .add_plugins(FreeCameraPlugin);
 
     app.add_plugins(PhysicsPlugins::default());
     app.add_plugins(PhysicsDebugPlugin);
@@ -159,7 +159,7 @@ fn setup(
 
     commands.spawn((
         Camera3d::default(),
-        FlyCam,
+        FreeCamera::default(),
         Transform::from_xyz(10.0, 10., 5.0).looking_at(Vec3::new(2., 0., 25.), Vec3::Y),
     ));
 }

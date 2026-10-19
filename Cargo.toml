@@ -15,9 +15,8 @@ libm = "0.2"
 
 [dev-dependencies]
 avian3d = "0.7"
-bevy = "0.19"
+bevy = { version = "0.19", features = ["free_camera"] }
 bevy_egui = "0.42"
-bevy_flycam = "0.19"
 bevy_firework = "0.10"
 
 # objc2 0.5 (via winit 0.30) has an overly-strict debug-only message-encoding
