@@ -1,8 +1,7 @@
 [package]
 name = "bevy_ballistic"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
-readme = "README.md"
 license = "MIT"
 authors = ["extrawurst <mail@rusticorn.com>"]
 repository = "https://github.com/rustunit/bevy_ballistic"
@@ -10,14 +9,20 @@ keywords = ["bevy", "gamedev", "math"]
 description = "Simple Bevy math functions to calculate projectile launch angles to hit a specific target."
 
 [dependencies]
-bevy_math = "0.19"
+bevy_math = "0.20"
 libm = "0.2"
 
 [dev-dependencies]
-avian3d = "0.7"
-bevy = { version = "0.19", features = ["free_camera"] }
-bevy_egui = "0.42"
-bevy_firework = "0.10"
+# TODO: back to crates.io once avian 0.8 (bevy 0.20) is released; rev must match bevy_firework's
+avian3d = { git = "https://github.com/avianphysics/avian", rev = "1070759b2145dc078abedace91dc7fe78013a45c" }
+bevy = { version = "0.20", features = ["free_camera"] }
+bevy_egui = "0.43"
+# TODO: back to crates.io once https://github.com/mbrea-c/bevy_firework/pull/60 is released
+bevy_firework = { git = "https://github.com/extrawurst/bevy_firework", branch = "chore/bevy-0.20" }
+
+[patch.crates-io]
+# TODO: drop once bevy_utilitarian 0.11 (bevy 0.20) is on crates.io
+bevy_utilitarian = { git = "https://github.com/extrawurst/bevy_utilitarian", branch = "bevy_0_20" }
 
 # objc2 0.5 (via winit 0.30) has an overly-strict debug-only message-encoding
 # verifier that false-positives on macOS 26's NSFastEnumeration (q vs Q return

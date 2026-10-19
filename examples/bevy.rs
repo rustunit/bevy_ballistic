@@ -1,3 +1,6 @@
+// macOS ld notes the debug binary's >16MB __eh_frame; harmless.
+#![allow(linker_messages)]
+
 use avian3d::prelude::*;
 use bevy::{
     asset::RenderAssetUsages,
@@ -262,8 +265,8 @@ fn update(
     mut shooting: ResMut<Shooting>,
     controls: Res<Controls>,
     time: Res<Time>,
-    shooter: Query<&Transform, (With<Shooter>, Without<Target>)>,
-    target: Query<(&Transform, &LinearVelocity), (With<Target>, Without<Shooter>)>,
+    shooter: Query<&Transform, With<Shooter>>,
+    target: Query<(&Transform, &LinearVelocity), With<Target>>,
 ) {
     shooting.timer.tick(time.delta());
 
@@ -390,6 +393,8 @@ fn on_spawn(trigger: On<SpawnProjectile>, mut commands: Commands, shooting: Res<
 fn on_particle(spawn: On<SpawnParticle>, mut commands: Commands) {
     commands.spawn((
         Transform::from_translation(spawn.event().0),
+        // Spawned mid physics step, so propagation won't run before firework's OneShot burst.
+        GlobalTransform::from_translation(spawn.event().0),
         ParticleSpawner {
             particle_settings: vec![ParticleSettings {
                 lifetime: RandF32::constant(0.1),
