@@ -16,16 +16,8 @@ libm = "0.2"
 avian3d = "0.8"
 bevy = { version = "0.20", features = ["free_camera"] }
 bevy_egui = "0.43"
-# TODO: back to crates.io once https://github.com/mbrea-c/bevy_firework/pull/60 is released
-bevy_firework = { git = "https://github.com/extrawurst/bevy_firework", branch = "chore/bevy-0.20" }
-
-[patch.crates-io]
-# TODO: drop once bevy_utilitarian 0.11 (bevy 0.20) is on crates.io
-bevy_utilitarian = { git = "https://github.com/extrawurst/bevy_utilitarian", branch = "bevy_0_20" }
-
-[patch."https://github.com/avianphysics/avian"]
-# TODO: drop once bevy_firework's 0.20 branch uses the avian 0.8 release
-avian3d = "0.8"
+# TODO: back to crates.io once https://github.com/doceazedo/sprinkles/pull/44 is released
+bevy_sprinkles = { git = "https://github.com/doceazedo/sprinkles", branch = "bevy-0.20" }
 
 # objc2 0.5 (via winit 0.30) has an overly-strict debug-only message-encoding
 # verifier that false-positives on macOS 26's NSFastEnumeration (q vs Q return

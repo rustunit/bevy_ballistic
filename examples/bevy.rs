@@ -14,14 +14,12 @@ use bevy_ballistic::{
     launch_velocity_lateral_moving_target, launch_velocity_moving_target,
 };
 use bevy_egui::{EguiContexts, EguiPlugin, EguiPrimaryContextPass, egui};
-use bevy_firework::{
-    bevy_utilitarian::prelude::{RandF32, RandValue, RandVec3},
-    core::{BlendMode, EmissionPacing, EmissionSettings, ParticleSettings, ParticleSpawner},
-    curve::{FireworkCurve, FireworkGradient},
-    emission_shape::EmissionShape,
-    plugin::ParticleSystemPlugin,
+use bevy_sprinkles::prelude::{
+    DrawPassMaterial, EmissionShape, EmitterColors, EmitterData, EmitterDrawPass, EmitterEmission,
+    EmitterScale, EmitterTime, EmitterVelocities, GradientStop, ParticleGradient, ParticleRange,
+    Particles3d, ParticlesAsset, ParticlesDimension, SprinklesPlugin, StandardParticleMaterial,
 };
-use std::{f32::consts::PI, time::Duration};
+use std::time::Duration;
 
 #[derive(Component)]
 struct Shooter;
@@ -37,6 +35,7 @@ struct Shooting {
     timer: Timer,
     material: Handle<StandardMaterial>,
     mesh: Handle<Mesh>,
+    impact_effect: Handle<ParticlesAsset>,
 }
 
 #[derive(Resource, Clone)]
@@ -70,7 +69,7 @@ fn main() {
 
     app.add_plugins(PhysicsPlugins::default());
     app.add_plugins(PhysicsDebugPlugin);
-    app.add_plugins(ParticleSystemPlugin::default());
+    app.add_plugins(SprinklesPlugin);
     app.add_plugins(EguiPlugin::default());
 
     app.add_systems(Startup, setup);
@@ -88,6 +87,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut effects: ResMut<Assets<ParticlesAsset>>,
 ) {
     let debug_material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
@@ -98,6 +98,7 @@ fn setup(
         timer: Timer::new(Duration::from_millis(200), TimerMode::Repeating),
         material: debug_material.clone(),
         mesh: meshes.add(Sphere::default().mesh().ico(5).unwrap()),
+        impact_effect: effects.add(impact_effect()),
     });
 
     let controls = Controls {
@@ -390,39 +391,68 @@ fn on_spawn(trigger: On<SpawnProjectile>, mut commands: Commands, shooting: Res<
         );
 }
 
-fn on_particle(spawn: On<SpawnParticle>, mut commands: Commands) {
+fn on_particle(spawn: On<SpawnParticle>, mut commands: Commands, shooting: Res<Shooting>) {
     commands.spawn((
         Transform::from_translation(spawn.event().0),
-        // Spawned mid physics step, so propagation won't run before firework's OneShot burst.
-        GlobalTransform::from_translation(spawn.event().0),
-        ParticleSpawner {
-            particle_settings: vec![ParticleSettings {
-                lifetime: RandF32::constant(0.1),
-                initial_scale: RandF32 {
-                    min: 0.02,
-                    max: 0.08,
-                },
-                scale_curve: FireworkCurve::constant(1.),
-                base_color: FireworkGradient::even_samples(vec![
-                    LinearRgba::new(1., 0., 0., 1.),
-                    LinearRgba::new(1., 1., 0., 1.),
-                ]),
-                blend_mode: BlendMode::Blend,
-                linear_drag: 0.1,
-                pbr: false,
-                ..default()
-            }],
-            emission_settings: vec![EmissionSettings {
-                initial_velocity: RandVec3 {
-                    magnitude: RandF32 { min: 0., max: 10. },
-                    direction: Vec3::Y,
-                    spread: 30. / 180. * PI,
-                },
-                emission_shape: EmissionShape::Sphere(0.4),
-                emission_pacing: EmissionPacing::OneShot(100),
-                ..default()
-            }],
-            ..default()
-        },
+        Particles3d(shooting.impact_effect.clone()),
     ));
+}
+
+fn impact_effect() -> ParticlesAsset {
+    ParticlesAsset::new(
+        "impact".into(),
+        ParticlesDimension::D3,
+        default(),
+        vec![EmitterData {
+            time: EmitterTime {
+                lifetime: 0.1,
+                one_shot: true,
+                explosiveness: 1.,
+                ..default()
+            },
+            draw_pass: EmitterDrawPass {
+                material: DrawPassMaterial::Standard(StandardParticleMaterial {
+                    unlit: true,
+                    ..default()
+                }),
+                shadow_caster: false,
+                ..default()
+            },
+            emission: EmitterEmission {
+                shape: EmissionShape::Sphere { radius: 0.4 },
+                particles_amount: 100,
+                ..default()
+            },
+            scale: EmitterScale {
+                range: ParticleRange::new(0.02, 0.08),
+                ..default()
+            },
+            colors: EmitterColors {
+                color_over_lifetime: ParticleGradient {
+                    stops: vec![
+                        GradientStop {
+                            color: [1., 0., 0., 1.],
+                            position: 0.,
+                        },
+                        GradientStop {
+                            color: [1., 1., 0., 1.],
+                            position: 1.,
+                        },
+                    ],
+                    ..default()
+                },
+                ..default()
+            },
+            velocities: EmitterVelocities {
+                initial_direction: Vec3::Y,
+                spread: 30.,
+                initial_velocity: ParticleRange::new(0., 10.),
+                ..default()
+            },
+            ..default()
+        }],
+        vec![],
+        true,
+        default(),
+    )
 }
