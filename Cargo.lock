@@ -446,8 +446,9 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "avian3d"
-version = "0.8.0-dev"
-source = "git+https://github.com/avianphysics/avian?rev=1070759b2145dc078abedace91dc7fe78013a45c#1070759b2145dc078abedace91dc7fe78013a45c"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca7479ccec5f1440675946bada8c805f2b6d514af78e1d2b0937ca53b1e2c543"
 dependencies = [
  "approx",
  "avian_derive",
@@ -474,7 +475,8 @@ dependencies = [
 [[package]]
 name = "avian_derive"
 version = "0.2.3"
-source = "git+https://github.com/avianphysics/avian?rev=1070759b2145dc078abedace91dc7fe78013a45c#1070759b2145dc078abedace91dc7fe78013a45c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b95522267606c85f77ba40b55735583618f7a48e873be71a934f71dd5519ce86"
 dependencies = [
  "proc-macro-error3",
  "proc-macro2",
@@ -4846,9 +4848,9 @@ dependencies = [
 
 [[package]]
 name = "obvhs"
-version = "0.3.3"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf590a9310ba69b2340562d39f0c9bddd3677130bfd24a5df22941552e791bac"
+checksum = "9e079e5dff9fc17017bfb526d5b71fe077e603de662e4b22f6deb4b6b36e5895"
 dependencies = [
  "bytemuck",
  "glam",
