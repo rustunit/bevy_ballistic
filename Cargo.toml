@@ -14,8 +14,7 @@ libm = "0.2"
 
 [dev-dependencies]
 avian3d = "0.8"
-bevy = { version = "0.20", features = ["free_camera"] }
-bevy_egui = "0.43"
+bevy = { version = "0.20", features = ["free_camera", "bevy_feathers"] }
 # TODO: back to crates.io once https://github.com/doceazedo/sprinkles/pull/44 is released
 bevy_sprinkles = { git = "https://github.com/doceazedo/sprinkles", branch = "bevy-0.20" }
 

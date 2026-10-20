@@ -6,14 +6,23 @@ use bevy::{
     asset::RenderAssetUsages,
     camera_controller::free_camera::{FreeCamera, FreeCameraPlugin},
     color::palettes::{basic::SILVER, css::WHITE},
+    feathers::{
+        FeathersPlugins,
+        containers::{pane, pane_body, pane_header},
+        controls::{FeathersCheckbox, FeathersSlider},
+        dark_theme::create_dark_theme,
+        display::{caption, label},
+        theme::UiTheme,
+    },
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+    ui::Checked,
+    ui_widgets::{SliderDragState, SliderPrecision, SliderValue, ValueChange},
 };
 use bevy_ballistic::{
     ballistic_range, launch_velocity, launch_velocity_lateral,
     launch_velocity_lateral_moving_target, launch_velocity_moving_target,
 };
-use bevy_egui::{EguiContexts, EguiPlugin, EguiPrimaryContextPass, egui};
 use bevy_sprinkles::prelude::{
     DrawPassMaterial, EmissionShape, EmitterColors, EmitterData, EmitterDrawPass, EmitterEmission,
     EmitterScale, EmitterTime, EmitterVelocities, GradientStop, ParticleGradient, ParticleRange,
@@ -70,11 +79,23 @@ fn main() {
     app.add_plugins(PhysicsPlugins::default());
     app.add_plugins(PhysicsDebugPlugin);
     app.add_plugins(SprinklesPlugin);
-    app.add_plugins(EguiPlugin::default());
+    app.add_plugins(FeathersPlugins);
+    app.insert_resource(UiTheme(create_dark_theme()));
 
-    app.add_systems(Startup, setup);
-    app.add_systems(Update, (update, controls, gismos, animate));
-    app.add_systems(EguiPrimaryContextPass, ui);
+    app.add_systems(Startup, (setup, controls_panel.spawn()));
+    app.add_systems(
+        Update,
+        (
+            update,
+            controls,
+            gismos,
+            animate,
+            show_range_while_dragging,
+            sync_widgets
+                .after(controls)
+                .run_if(resource_changed::<Controls>),
+        ),
+    );
 
     app.add_observer(on_particle);
     app.add_observer(on_spawn);
@@ -188,42 +209,228 @@ fn gismos(
     );
 }
 
-fn ui(mut contexts: EguiContexts, mut res: ResMut<Controls>) -> Result {
-    res.show_range = false;
-    egui::Window::new("Controls").show(contexts.ctx_mut()?, |ui| {
-        let dragged_x = ui
-            .add(egui::Slider::new(&mut res.x, 2.0..=10.0).text("x"))
-            .dragged();
-        let dragged_z = ui
-            .add(egui::Slider::new(&mut res.z, 15.0..=30.0).text("z"))
-            .dragged();
+/// The `Controls` field a slider edits.
+#[derive(Component, Clone, Copy, Default)]
+enum ControlSlider {
+    #[default]
+    X,
+    Z,
+    Vel,
+    LateralVel,
+    LateralHeight,
+}
 
-        let dragged_vel = if !res.lateral {
-            ui.add(egui::Slider::new(&mut res.vel, 10.0..=25.0).text("vel"))
-                .dragged()
+impl ControlSlider {
+    fn get(self, c: &Controls) -> f32 {
+        match self {
+            Self::X => c.x,
+            Self::Z => c.z,
+            Self::Vel => c.vel,
+            Self::LateralVel => c.lateral_vel,
+            Self::LateralHeight => c.lateral_height,
+        }
+    }
+
+    fn get_mut(self, c: &mut Controls) -> &mut f32 {
+        match self {
+            Self::X => &mut c.x,
+            Self::Z => &mut c.z,
+            Self::Vel => &mut c.vel,
+            Self::LateralVel => &mut c.lateral_vel,
+            Self::LateralHeight => &mut c.lateral_height,
+        }
+    }
+}
+
+/// The `Controls` field a checkbox edits.
+#[derive(Component, Clone, Copy, Default)]
+enum ControlToggle {
+    #[default]
+    Animate,
+    ExtrapolatedAim,
+    Lateral,
+}
+
+impl ControlToggle {
+    fn get(self, c: &Controls) -> bool {
+        match self {
+            Self::Animate => c.animate,
+            Self::ExtrapolatedAim => c.extrapolated_aim,
+            Self::Lateral => c.lateral,
+        }
+    }
+
+    fn get_mut(self, c: &mut Controls) -> &mut bool {
+        match self {
+            Self::Animate => &mut c.animate,
+            Self::ExtrapolatedAim => &mut c.extrapolated_aim,
+            Self::Lateral => &mut c.lateral,
+        }
+    }
+}
+
+#[derive(Component, Clone, Copy, Default)]
+enum ShowIf {
+    #[default]
+    Always,
+    Animate,
+    Lateral,
+    NotLateral,
+}
+
+impl ShowIf {
+    fn visible(self, c: &Controls) -> bool {
+        match self {
+            Self::Always => true,
+            Self::Animate => c.animate,
+            Self::Lateral => c.lateral,
+            Self::NotLateral => !c.lateral,
+        }
+    }
+}
+
+fn controls_panel() -> impl Scene {
+    bsn! {
+        @pane()
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(8),
+            top: px(8),
+            width: px(300),
+        }
+        Children [
+            @pane_header()
+            Children [ @label("Controls") ]
+            --
+            @pane_body()
+            Children [
+                @slider_row("x", ControlSlider::X, 2., 10., ShowIf::Always)
+                --
+                @slider_row("z", ControlSlider::Z, 15., 30., ShowIf::Always)
+                --
+                @slider_row("vel", ControlSlider::Vel, 10., 25., ShowIf::NotLateral)
+                --
+                @checkbox("animate", ControlToggle::Animate, ShowIf::Always)
+                --
+                @checkbox("extrapolated aim", ControlToggle::ExtrapolatedAim, ShowIf::Animate)
+                --
+                @checkbox("lateral", ControlToggle::Lateral, ShowIf::Always)
+                --
+                @slider_row("lateral vel", ControlSlider::LateralVel, 1., 15., ShowIf::Lateral)
+                --
+                @slider_row("lateral height", ControlSlider::LateralHeight, 1., 15., ShowIf::Lateral)
+            ]
+        ]
+    }
+}
+
+fn slider_row(
+    text: &'static str,
+    field: ControlSlider,
+    min: f32,
+    max: f32,
+    show_if: ShowIf,
+) -> impl Scene {
+    bsn! {
+        Node {
+            align_items: AlignItems::Center,
+            column_gap: px(8),
+        }
+        show_if
+        Children [
+            @FeathersSlider { @min: min, @max: max }
+            SliderPrecision(2)
+            field
+            on(on_slider)
+            --
+            @label(text)
+            Node { width: px(100) }
+        ]
+    }
+}
+
+fn checkbox(text: &'static str, field: ControlToggle, show_if: ShowIf) -> impl Scene {
+    bsn! {
+        @FeathersCheckbox { @caption: bsn! { @caption(text) } }
+        field
+        show_if
+        on(on_toggle)
+    }
+}
+
+fn on_slider(
+    change: On<ValueChange<f32>>,
+    sliders: Query<&ControlSlider>,
+    mut controls: ResMut<Controls>,
+) {
+    if let Ok(field) = sliders.get(change.source) {
+        *field.get_mut(&mut controls) = change.value;
+    }
+}
+
+fn on_toggle(
+    change: On<ValueChange<bool>>,
+    toggles: Query<&ControlToggle>,
+    mut controls: ResMut<Controls>,
+) {
+    if let Ok(field) = toggles.get(change.source) {
+        *field.get_mut(&mut controls) = change.value;
+    }
+}
+
+/// Widgets are controlled: `Controls` is the source of truth, also written by `controls()`.
+fn sync_widgets(
+    mut commands: Commands,
+    controls: Res<Controls>,
+    sliders: Query<(Entity, &ControlSlider, &SliderValue)>,
+    toggles: Query<(Entity, &ControlToggle, Has<Checked>)>,
+    mut rows: Query<(&ShowIf, &mut Node)>,
+) {
+    for (entity, field, value) in &sliders {
+        let new_value = field.get(&controls);
+        if value.0 != new_value {
+            commands.entity(entity).insert(SliderValue(new_value));
+        }
+    }
+
+    for (entity, field, checked) in &toggles {
+        match (field.get(&controls), checked) {
+            (true, false) => {
+                commands.entity(entity).insert(Checked);
+            }
+            (false, true) => {
+                commands.entity(entity).remove::<Checked>();
+            }
+            _ => {}
+        }
+    }
+
+    for (show_if, mut node) in &mut rows {
+        let display = if show_if.visible(&controls) {
+            Display::Flex
         } else {
-            false
+            Display::None
         };
-
-        if dragged_vel || dragged_x || dragged_z {
-            res.show_range = true;
+        if node.display != display {
+            node.display = display;
         }
+    }
+}
 
-        ui.checkbox(&mut res.animate, "animate");
-
-        if res.animate {
-            ui.checkbox(&mut res.extrapolated_aim, "extrapolated aim");
-        }
-
-        ui.checkbox(&mut res.lateral, "lateral");
-
-        if res.lateral {
-            ui.add(egui::Slider::new(&mut res.lateral_vel, 1.0..=15.0).text("lateral vel"));
-            ui.add(egui::Slider::new(&mut res.lateral_height, 1.0..=15.0).text("lateral height"));
-        }
+fn show_range_while_dragging(
+    sliders: Query<(&ControlSlider, &SliderDragState)>,
+    mut controls: ResMut<Controls>,
+) {
+    let dragging = sliders.iter().any(|(field, drag)| {
+        drag.dragging
+            && matches!(
+                field,
+                ControlSlider::X | ControlSlider::Z | ControlSlider::Vel
+            )
     });
-
-    Ok(())
+    if controls.show_range != dragging {
+        controls.show_range = dragging;
+    }
 }
 
 fn controls(
